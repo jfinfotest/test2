@@ -6,3 +6,4 @@ def resta(a, b):
   """Resta dos números."""
   return a - b
 
+
