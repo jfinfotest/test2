@@ -1,0 +1,31 @@
+name: Calificar Evaluación
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  grade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: Instalar dependencias
+        run: pip install mysql-connector-python
+      - name: Guardar resultados de las pruebas
+        id: tests
+        run: |
+          RESULT=$(python -m unittest tests.py)
+          echo "::set-output name=result::$RESULT"
+      - name: Insertar resultados en MySQL
+        run: |
+          python -c "import mysql.connector;mydb = mysql.connector.connect(host='${{ secrets.MYSQL_HOST }}',user='${{ secrets.MYSQL_USER }}',password='${{ secrets.MYSQL_PASSWORD }}',database='${{ secrets.MYSQL_DATABASE }}',port='${{ secrets.MYSQL_PORT }}');mycursor = mydb.cursor();sql = 'INSERT INTO resultados (repositorio, resultados) VALUES (%s, %s)';val = ('${{ github.repository.html_url }}', '${{ steps.tests.outputs.result }}');mycursor.execute(sql, val);mydb.commit()"
+        env:
+           MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
+           MYSQL_USER: ${{ secrets.MYSQL_USER }}
+           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+           MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
+           MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
